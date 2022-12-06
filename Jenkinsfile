@@ -11,7 +11,7 @@ node {
     def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
     def CONNECTED_APP_CONSUMER_KEY=env.CONNECTED_APP_CONSUMER_KEY_DH
 
-    println 'KEY IS' 
+    println 'Validando credenciales de conexión ...' 
     println JWT_KEY_CRED_ID
     println HUB_ORG
     println SFDC_HOST
@@ -21,6 +21,7 @@ node {
     stage('checkout source') {
         // when running in multi-branch job, one must issue this command
         checkout scm
+        println('Stage 1')
     }
 
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
