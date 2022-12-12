@@ -25,7 +25,7 @@ node {
     }
 
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
-        println 'Validando credenciales de conexión ...' 
+        println 'Validando credenciales de conexión segunda parte ...' 
         println JWT_KEY_CRED_ID
         stage('Deploye Code') {
             if (isUnix()) {
