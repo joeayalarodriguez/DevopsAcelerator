@@ -1,11 +1,11 @@
 !groovy
 import groovy.json.JsonSlurperClassic
 node {
-    def SFDC_USERNAME="user@avarna.es" //Hay que añadir aquí el usuario que tengamos conectado
-    def SFDC_HOST = "https://test.salesforce.com"
-    def CONNECTED_APP_CONSUMER_KEY ="Cusumer Key"//Cambiar por el Consumer Key generado en la Parte II
-    def JWT_KEY_CRED_ID = "Credentials Id"//Cambiar por las credenciales de Jenkins creadas en la Parte II
-    def sfdx = tool 'sfdxtool'//Creamos una variable para usar sfdx a partir de la Custom Tool que creamos en la Parte I
+    def SFDC_USERNAME="joeayala@sfdx.com" //Hay que añadir aquí el usuario que tengamos conectado
+    def SFDC_HOST = "https://login.salesforce.com"
+    def CONNECTED_APP_CONSUMER_KEY =""//Cambiar por el Consumer Key generado en la Parte II
+    def JWT_KEY_CRED_ID = "3MVG9ux34Ig8G5erxLhTjS4clVMbYDeHuldiaPSF4wDiMUgCf.okCeCzQuedfqarp0mDz8qoUg42NN9fyMYVq"//Cambiar por las credenciales de Jenkins creadas en la Parte II
+    def sfdx = tool '555739f3-d431-4d1c-8f73-b5885cde472d'//Creamos una variable para usar sfdx a partir de la Custom Tool que creamos en la Parte I
 
     stage('Check branch name') { // Primer paso para compobar que estamos en la rama correcta
         println env.BRANCH_NAME
