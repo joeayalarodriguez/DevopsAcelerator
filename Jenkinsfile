@@ -1,5 +1,7 @@
 !groovy
 import groovy.json.JsonSlurperClassic
+import jenkins.model.*
+jenkins = Jenkins.instance
 node {
     def SFDC_USERNAME="joeayala@sfdx.com" //Hay que añadir aquí el usuario que tengamos conectado
     def SFDC_HOST = "https://login.salesforce.com"
