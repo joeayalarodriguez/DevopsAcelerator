@@ -1,0 +1,12 @@
+# Avarna SFDX project
+.forceignore
+/.sfdx
+/.vim-force.com
+/.vscode
+/config
+/manifest/*
+!/manifest/package.xml
+.forceignore
+README.md
+package.json
+/script
