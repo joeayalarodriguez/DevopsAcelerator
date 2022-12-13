@@ -1,4 +1,5 @@
-/*#!groovy
+#!groovy
+/*
 import groovy.json.JsonSlurperClassic
 node {
 
@@ -51,7 +52,7 @@ node {
     }
 } */
 
-#!groovy
+
 
 node {
 
