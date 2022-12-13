@@ -12,6 +12,11 @@ node {
 
     def toolbelt = tool 'toolbelt'
 
+    println 'Validando credenciales de conexión ...' 
+    println SF_CONSUMER_KEY
+    println SF_USERNAME
+    println SERVER_KEY_CREDENTIALS_ID
+    println SF_INSTANCE_URL
 
     // -------------------------------------------------------------------------
     // Check out code from source control.
