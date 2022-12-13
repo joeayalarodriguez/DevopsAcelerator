@@ -1,84 +1,47 @@
-#!groovy
-
+!groovy
+import groovy.json.JsonSlurperClassic
 node {
+    def SFDC_USERNAME="user@avarna.es" //Hay que añadir aquí el usuario que tengamos conectado
+    def SFDC_HOST = "https://test.salesforce.com"
+    def CONNECTED_APP_CONSUMER_KEY ="Cusumer Key"//Cambiar por el Consumer Key generado en la Parte II
+    def JWT_KEY_CRED_ID = "Credentials Id"//Cambiar por las credenciales de Jenkins creadas en la Parte II
+    def sfdx = tool 'sfdxtool'//Creamos una variable para usar sfdx a partir de la Custom Tool que creamos en la Parte I
 
-    def SF_CONSUMER_KEY=env.CONNECTED_APP_CONSUMER_KEY_DH
-    def SF_USERNAME=env.SFDC_HOST_DH
-    def SERVER_KEY_CREDENTIALS_ID=env.JWT_CRED_ID_DH
-    def DEPLOYDIR='src'
-    def TEST_LEVEL='RunLocalTests'
-    def SF_INSTANCE_URL = env.SF_INSTANCE_URL ?: "https://test.salesforce.com"
-
-
-    def toolbelt = tool 'toolbelt'
-
-    println 'Validando credenciales de conexión ...' 
-    println env
-    println SF_CONSUMER_KEY
-    println SF_USERNAME
-    println SERVER_KEY_CREDENTIALS_ID
-    println SF_INSTANCE_URL
-
-    // -------------------------------------------------------------------------
-    // Check out code from source control.
-    // -------------------------------------------------------------------------
-
-    stage('checkout source') {
+    stage('Check branch name') { // Primer paso para compobar que estamos en la rama correcta
+        println env.BRANCH_NAME
+        if(env.BRANCH_NAME=="master"){// Este nombre es el que le demos al seleccionar el repositorio dentro del Pipeline
+            println('Script from master!')
+            println sfdx
+        }
+        else{
+            println sfdx
+            error 'Incorrect branch' 
+        }
         checkout scm
     }
 
+    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {        
+        stage('Deployment') {
+            if (isUnix()) {//Para sistemas Unix el comando varía un poco el formato
+                rc = sh returnStatus: true, script: "${sfdx} force:auth:logout --targetusername ${SFDC_USERNAME} -p" //Hacemos logout para evitar un error
+				// Autorizamos la dev hub org
+                rc = sh returnStatus: true, script: "${sfdx} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${SFDC_USERNAME} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+            }else{//ejecutamos lo mismo para sistemas Windows
+                rc = sh returnStatus: true, script:"\"${sfdx}\" force:auth:logout --targetusername ${SFDC_USERNAME} -p"
+                rc = bat returnStatus: true, script: "\"${sfdx}\" force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${SFDC_USERNAME} --jwtkeyfile \"${jwt_key_file}\" --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+            }
+            if (rc != 0) { error 'Org authorization has failed' }
 
-    // -------------------------------------------------------------------------
-    // Run all the enclosed stages with access to the Salesforce
-    // JWT key credentials.
-    // -------------------------------------------------------------------------
-
-    	withEnv(["HOME=${env.WORKSPACE}"]) {	
-	
-	    withCredentials([file(credentialsId: SERVER_KEY_CREDENTIALS_ID, variable: 'server_key_file')]) {
-		// -------------------------------------------------------------------------
-		println 'Authenticate to Salesforce using the server key...'
-        println SERVER_KEY_CREDENTIALS_ID
-		// -------------------------------------------------------------------------
-
-		stage('Authorize to Salesforce') {
-			rc = command "${toolbelt}/sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias UAT"
-		    if (rc != 0) {
-			error 'Salesforce org authorization failed.'
-		    }
-		}
-
-
-		// -------------------------------------------------------------------------
-		// Deploy metadata and execute unit tests.
-		// -------------------------------------------------------------------------
-
-		stage('Deploy and Run Tests') {
-		    rc = command "${toolbelt}/sfdx force:mdapi:deploy --wait 10 --deploydir ${DEPLOYDIR} --targetusername UAT --testlevel ${TEST_LEVEL}"
-		    if (rc != 0) {
-			error 'Salesforce deploy and test run failed.'
-		    }
-		}
-
-
-		// -------------------------------------------------------------------------
-		// Example shows how to run a check-only deploy.
-		// -------------------------------------------------------------------------
-
-		//stage('Check Only Deploy') {
-		//    rc = command "${toolbelt}/sfdx force:mdapi:deploy --checkonly --wait 10 --deploydir ${DEPLOYDIR} --targetusername UAT --testlevel ${TEST_LEVEL}"
-		//    if (rc != 0) {
-		//        error 'Salesforce deploy failed.'
-		//    }
-		//}
-	    }
-	}
-}
-
-def command(script) {
-    if (isUnix()) {
-        return sh(returnStatus: true, script: script);
-    } else {
-		return bat(returnStatus: true, script: script);
+			println rc
+			//Realizamos el despliegue de todo force-app
+			if (isUnix()) {
+                rmsg = sh returnStdout: true, script: "${sfdx} force:source:deploy --sourcepath force-app -u ${SFDC_USERNAME}"
+			}else{
+               rmsg = bat returnStdout: true, script: "\"${sfdx}\" force:source:deploy --sourcepath force-app -u ${SFDC_USERNAME}"
+			}
+			  
+            printf rmsg
+            println(rmsg)
+        }
     }
 }
