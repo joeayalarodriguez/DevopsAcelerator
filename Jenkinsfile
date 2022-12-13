@@ -1,49 +1,52 @@
-!groovy
-import groovy.json.JsonSlurperClassic
-import jenkins.model.*
-jenkins = Jenkins.instance
-node {
-    def SFDC_USERNAME="joeayala@sfdx.com" //Hay que añadir aquí el usuario que tengamos conectado
-    def SFDC_HOST = "https://login.salesforce.com"
-    def CONNECTED_APP_CONSUMER_KEY ="3MVG9ux34Ig8G5erxLhTjS4clVMbYDeHuldiaPSF4wDiMUgCf.okCeCzQuedfqarp0mDz8qoUg42NN9fyMYVq"//Cambiar por el Consumer Key generado en la Parte II
-    def JWT_KEY_CRED_ID = "555739f3-d431-4d1c-8f73-b5885cde472d"//Cambiar por las credenciales de Jenkins creadas en la Parte II
-    def sfdx = tool 'toolbelt'//Creamos una variable para usar sfdx a partir de la Custom Tool que creamos en la Parte I
 
-    stage('Check branch name') { // Primer paso para compobar que estamos en la rama correcta
-        println env.BRANCH_NAME
-        if(env.BRANCH_NAME=="master"){// Este nombre es el que le demos al seleccionar el repositorio dentro del Pipeline
-            println('Script from master!')
-            println sfdx
-        }
-        else{
-            println sfdx
-            error 'Incorrect branch' 
-        }
+import groovy.json.JsonSlurperClassic
+node {
+
+    def BUILD_NUMBER=env.BUILD_NUMBER
+    def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
+    def SFDC_USERNAME
+
+    def HUB_ORG=env.HUB_ORG_DH
+    def SFDC_HOST = env.SFDC_HOST_DH
+    def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
+    def CONNECTED_APP_CONSUMER_KEY=env.CONNECTED_APP_CONSUMER_KEY_DH
+
+    println 'Validando credenciales de conexión ...' 
+    println JWT_KEY_CRED_ID
+    println HUB_ORG
+    println SFDC_HOST
+    println CONNECTED_APP_CONSUMER_KEY
+    def toolbelt = tool 'toolbelt'
+
+    stage('checkout source') {
+        // when running in multi-branch job, one must issue this command
         checkout scm
+        println('Stage 1')
     }
 
-    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {        
-        stage('Deployment') {
-            if (isUnix()) {//Para sistemas Unix el comando varía un poco el formato
-                rc = sh returnStatus: true, script: "${sfdx} force:auth:logout --targetusername ${SFDC_USERNAME} -p" //Hacemos logout para evitar un error
-				// Autorizamos la dev hub org
-                rc = sh returnStatus: true, script: "${sfdx} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${SFDC_USERNAME} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
-            }else{//ejecutamos lo mismo para sistemas Windows
-                rc = sh returnStatus: true, script:"\"${sfdx}\" force:auth:logout --targetusername ${SFDC_USERNAME} -p"
-                rc = bat returnStatus: true, script: "\"${sfdx}\" force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${SFDC_USERNAME} --jwtkeyfile \"${jwt_key_file}\" --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+        println 'Validando credenciales de conexión segunda parte ...' 
+        println JWT_KEY_CRED_ID
+        stage('Deploye Code') {
+            if (isUnix()) {
+                rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+            }else{
+                 rc = bat returnStatus: true, script: "\"${toolbelt}\" force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile \"${jwt_key_file}\" --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
             }
-            if (rc != 0) { error 'Org authorization has failed' }
+            if (rc != 0) { error 'hub org authorization failed' }
 
 			println rc
-			//Realizamos el despliegue de todo force-app
+			
+			// need to pull out assigned username
 			if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "${sfdx} force:source:deploy --sourcepath force-app -u ${SFDC_USERNAME}"
+				rmsg = sh returnStdout: true, script: "${toolbelt} force:mdapi:deploy -d manifest/. -u ${HUB_ORG}"
 			}else{
-               rmsg = bat returnStdout: true, script: "\"${sfdx}\" force:source:deploy --sourcepath force-app -u ${SFDC_USERNAME}"
+			   rmsg = bat returnStdout: true, script: "\"${toolbelt}\" force:mdapi:deploy -d manifest/. -u ${HUB_ORG}"
 			}
 			  
             printf rmsg
+            println('Hello from a Job DSL script!')
             println(rmsg)
         }
     }
-}
+} 
