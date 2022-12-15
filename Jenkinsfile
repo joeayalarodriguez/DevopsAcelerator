@@ -29,8 +29,10 @@ node {
         println JWT_KEY_CRED_ID
         stage('Deploye Code') {
             if (isUnix()) {
+                 println 'autenticando unix...' 
                 rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile /home/joe/opensslw/server.key --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
             }else{
+                 println 'autenticando ...' 
                  rc = bat returnStatus: true, script: "\"${toolbelt}\" force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile /home/joe/opensslw/server.key --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
             }
             if (rc != 0) { error 'hub org authorization failed' }
